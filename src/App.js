@@ -6,7 +6,7 @@ import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 // import { useState, useEffect, useCallback } from 'react';
 // import { useWallet, UseWalletProvider } from 'use-wallet';
-import { MetaMaskButton, Button, ToastMessage } from 'rimble-ui';
+import { MetaMaskButton, Button, ToastMessage, Flash, Card, Text, Field, EthAddress } from 'rimble-ui';
 import { Alert } from 'react-bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import BigNumber from 'bignumber.js';
@@ -121,7 +121,8 @@ function App() {
 	const [pendingAmount, setPendingAmount] = useState('0');
 	const [isPending, setIsPending] = useState(false);
 	const [errMsg, setErrMsg] = useState("Transaction failed!");
-	const [isError, setIsError] = useState(false);
+  const [isError, setIsError] = useState(false);
+  const [tvl, setTVL] = useState('0');
   // const { account, connect, ethereum } = useWallet();
   // const wallet = useWallet();
   // const [isLoading, setIsLoading] = useState(false);
@@ -159,13 +160,17 @@ function App() {
   const PendingAlert = () => {
 		if (!isPending) return null;
 		return (
-
-			<Alert key="pending" variant="info" 
-			style={{position: 'absolute', top: 0}}>
-			Blockchain event notification: transaction of {pendingAmount} 
+      <Flash key={"pending"} my={1} variant="success">
+      Blockchain event notification: transaction of {pendingAmount} 
 			&#x39e; from <br />
-			{pendingFrom} <br /> to <br /> {pendingTo}.
-			</Alert>
+			{pendingFrom} <br /> to <br /> {pendingTo}
+      </Flash>
+			// <Alert key="pending" variant="info" 
+			// style={{position: 'absolute', top: 0}}>
+			// Blockchain event notification: transaction of {pendingAmount} 
+			// &#x39e; from <br />
+			// {pendingFrom} <br /> to <br /> {pendingTo}.
+			// </Alert>
 		);
   };
   
@@ -173,10 +178,14 @@ function App() {
 	const ErrorAlert = () => {
 		if (!isError) return null;
 		return (
-			<Alert key="error" variant="danger" 
-			style={{position: 'absolute', top: 0}}>
-			{errMsg}
-			</Alert>
+      <Flash key={"error"} my={1} variant="danger" role="alert">
+      {errMsg}
+      </Flash>
+      
+			// <Alert key="error" variant="danger" 
+			// style={{position: 'absolute', top: 0}}>
+			// {errMsg}
+			// </Alert>
 		);
   };
 
@@ -201,6 +210,12 @@ function App() {
 
   // };
   
+  // Sets the TVL of the pool
+	pool.totalSupply().then(balance => {
+		let formattedBalance = ethers.utils.formatUnits(balance, 18);
+		setTVL(formattedBalance.toString())
+	});
+
   // Sets current balance of QSR for user
 	signer.getAddress().then(response => {
 		setWalAddress(response);
@@ -342,13 +357,13 @@ function App() {
 
 		<ErrorAlert />
 		<PendingAlert />
- 
-    {/* <Web3ReactProvider getLibrary={getLibrary}>
-      <Wallet />
-    </Web3ReactProvider> */}
+
 		<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Ethereum-icon-purple.svg/512px-Ethereum-icon-purple.svg.png" className="App-logo" alt="Ethereum logo" />
 
-		<h2>{coinSymbol}</h2>
+		<h1>
+      QUASAR PROTOCOL<br/>
+      Total Value Locked: {tvl} ETH
+    </h1>
 
     {/* {(typeof window.ethereum !== 'undefined' || (typeof window.web3 !== 'undefined')) ? (
       <MetaMaskButton onClick={() => connectWallet()}>Connect with Metamask</MetaMaskButton>
@@ -362,15 +377,32 @@ function App() {
 
 
 
+    <Card bg={"black"} width={"auto"} maxWidth={"420px"} mx={"auto"} px={[3,3,4]}>
+    <Text fontWeight={4} alignItems={"center"} >Connected Wallet</Text>
+    <EthAddress address={walAddress} />
+		{/* // <p>
+		// Connected wallet: {walAddress}<br/>
+		// ETH deposited: {ethBalance}<br />
+		// QSR reward: {quasarBalance}<br />
+		// </p> */}
+    </Card>
 
+    <Card bg={"black"} width={"auto"} maxWidth={"420px"} mx={"auto"} px={[3,3,4]}>
+    <Text fontWeight={4} alignItems={"center"} >Become a Coverage Provider and earn rewards!</Text>
+    <p>
+      ETH deposited: {ethBalance} <br />
+      QSR reward: {quasarBalance}
+    </p>
+    <form onSubmit={handleDepositSubmit}>
+    <Field label="Deposit ETH">
+    <input type="number" step="1" min="0" id="pooldeposit" 
+		name="pooldeposit" onChange={e => poolValueChange(e.target.value)} required 
+		style={{margin:'12px'}}/>	
+		<Button type="submit" >Deposit</Button>
+    </Field>
+    </form>
 
-		<p>
-		User Wallet address: {walAddress}<br/>
-		ETH deposited: {ethBalance}<br />
-		QSR reward: {quasarBalance}<br />
-		</p>
-
-		<form onSubmit={handleDepositSubmit}>
+		{/* <form onSubmit={handleDepositSubmit}>
 		<p>
 		<label htmlFor="pooldeposit">Deposit ETH into the pool:</label>
 		<input type="number" step="1" min="0" id="pooldeposit" 
@@ -378,9 +410,20 @@ function App() {
 		style={{margin:'12px'}}/>	
 		<Button type="submit" >Deposit</Button>
 		</p>
-		</form>
+		</form> */}
 
-		<form onSubmit={handleWithdrawSubmit}>
+
+    <form onSubmit={handleWithdrawSubmit}>
+    <Field label="Withdraw ETH">
+		<input type="number" step="1" min="0" id="poolwithdraw" 
+		name="poolwithdraw" onChange={e => poolValueChange(e.target.value)} required 
+		style={{margin:'12px'}}/>	
+		<Button type="submit" >Withdraw</Button>
+    </Field>
+		</form>
+    </Card>
+
+		{/* <form onSubmit={handleWithdrawSubmit}>
 		<p>
 		<label htmlFor="poolwithdraw">Withdraw ETH from the pool:</label>
 		<input type="number" step="1" min="0" id="poolwithdraw" 
@@ -388,20 +431,30 @@ function App() {
 		style={{margin:'12px'}}/>	
 		<Button type="submit" >Withdraw</Button>
 		</p>
-		</form>
+		</form> */}
 
+    <Card bg={"black"} width={"auto"} maxWidth={"420px"} mx={"auto"} px={[3,3,4]}>
+    <Text fontWeight={4} alignItems={"center"} >Buy Coverage</Text>
     <form onSubmit={handleBuyCoverageSubmit}>
-		<p>
-		<label htmlFor="poolbuycover">Buy coverage:</label>
+    <Field label="Coverage amount (ETH)">
+
+		{/* <p>
+		<label htmlFor="poolbuycover">Buy coverage:</label> */}
 		<input type="number" step="1" min="0" id="poolbuycoveramount" 
 		name="poolbuycoveramount" onChange={e => buyAmountValueChange(e.target.value)} required 
 		style={{margin:'12px'}}/>
+    </Field>
+    <Field label="Coverage period (days)">
     <input type="number" step="1" min="0" id="poolbuycoverperiod" 
 		name="poolbuycoverperiod" onChange={e => buyPeriodValueChange(e.target.value)} required 
 		style={{margin:'12px'}}/>
+    </Field>
+
 		<Button type="submit" >Buy</Button>
-		</p>
+		{/* </p> */}
 		</form>
+    </Card>
+
 
 		<a  title="GitR0n1n / CC BY-SA (https://creativecommons.org/licenses/by-sa/4.0)" href="https://commons.wikimedia.org/wiki/File:Ethereum-icon-purple.svg">
 		<span style={{fontSize:'12px',color:'grey'}}>
