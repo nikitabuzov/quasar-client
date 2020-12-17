@@ -6,7 +6,7 @@ import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 // import { useState, useEffect, useCallback } from 'react';
 // import { useWallet, UseWalletProvider } from 'use-wallet';
-import { MetaMaskButton, Button, ToastMessage, Flash, Card, Text, Field, EthAddress } from 'rimble-ui';
+import { MetaMaskButton, Button, ToastMessage, Flash, Card, Text, Field, EthAddress, Select } from 'rimble-ui';
 import { Alert } from 'react-bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import BigNumber from 'bignumber.js';
@@ -20,8 +20,8 @@ import BigNumber from 'bignumber.js';
 import Pool from './contracts/Pool.json';
 import QuasarToken from './contracts/QuasarToken.json';
 
-const poolAddress = '0xE563C51587F7Baf357B2088503602e57C765C257';
-const quasarAddress = '0x5aA33655504051F5cA05efa7871d9F15d70DBBb4';
+const poolAddress = '0x8D0Ac6970A7eFD53Ce6aE26e9abEeD0B7dA8d0eC';
+const quasarAddress = '0x506c7ba8f919A544bb0aEa2EaEb86ee0b1EC92bF';
 
 let provider;
 let signer;
@@ -123,6 +123,7 @@ function App() {
 	const [errMsg, setErrMsg] = useState("Transaction failed!");
   const [isError, setIsError] = useState(false);
   const [tvl, setTVL] = useState('0');
+  const [claimMessage, setClaimMessage] = useState('empty');
   // const { account, connect, ethereum } = useWallet();
   // const wallet = useWallet();
   // const [isLoading, setIsLoading] = useState(false);
@@ -160,11 +161,16 @@ function App() {
   const PendingAlert = () => {
 		if (!isPending) return null;
 		return (
-      <Flash key={"pending"} my={1} variant="success">
-      Blockchain event notification: transaction of {pendingAmount} 
-			&#x39e; from <br />
-			{pendingFrom} <br /> to <br /> {pendingTo}
-      </Flash>
+      <ToastMessage.Success
+      my={3}
+      message={"Transaction successful"}
+      secondaryMessage={"amount: "+ethers.utils.formatUnits(pendingAmount, 18).toString()}
+      />
+      // <Flash key={"pending"} my={1} variant="success">
+      // Blockchain event notification: transaction of {pendingAmount} 
+			// &#x39e; from <br />
+			// {pendingFrom} <br /> to <br /> {pendingTo}
+      // </Flash>
 			// <Alert key="pending" variant="info" 
 			// style={{position: 'absolute', top: 0}}>
 			// Blockchain event notification: transaction of {pendingAmount} 
@@ -178,9 +184,14 @@ function App() {
 	const ErrorAlert = () => {
 		if (!isError) return null;
 		return (
-      <Flash key={"error"} my={1} variant="danger" role="alert">
-      {errMsg}
-      </Flash>
+      <ToastMessage.Failure
+      my={3}
+      message={"Transaction failed"}
+      secondaryMessage={errMsg}
+      />
+      // <Flash key={"error"} my={1} variant="danger" role="alert">
+      // {errMsg}
+      // </Flash>
       
 			// <Alert key="error" variant="danger" 
 			// style={{position: 'absolute', top: 0}}>
@@ -281,6 +292,23 @@ function App() {
 			setIsError(true);
 		} 	
   }
+
+  async function withdrawAll() {
+    try {
+      await pool.exit();
+      await pool.on("Withdrawn", (from, amount) => {
+				setPendingFrom(from.toString());
+				// setPendingTo(to.toString());
+				setPendingAmount(amount.toString());
+        setIsPending(true);
+      })
+    } catch(err) {
+      if(typeof err.data !== 'undefined') {
+				setErrMsg("Error: "+ err.data.message);
+			} 
+			setIsError(true);
+    }
+  }
   
   // Interacts with the pool to buy coverage
   async function buyCoverage() {
@@ -289,6 +317,23 @@ function App() {
       await pool.buyCoverage(buyCoverPeriod,buyCoverAmount.toString(),{value:"0x"+price.toString(16)});
       // Listens for event on blockchain
 			await pool.on("CoverPurchased", (from, period, amount) => {
+				setPendingFrom(from.toString());
+				setPendingTo(period.toString());
+				setPendingAmount(amount.toString());
+				setIsPending(true);
+			})
+    } catch(err) {
+      if(typeof err.data !== 'undefined') {
+				setErrMsg("Error: "+ err.data.message);
+      } 
+			setIsError(true);
+    }
+  }
+
+  async function openClaim() {
+    try {
+      await pool.openClaim(claimMessage)
+      await pool.on("ClaimOpened", (from, period, amount) => {
 				setPendingFrom(from.toString());
 				setPendingTo(period.toString());
 				setPendingAmount(amount.toString());
@@ -323,6 +368,12 @@ function App() {
 		setIsPending(false);
 		setIsError(false);
   }
+
+  function claimMessageValueChange(value) {
+    setClaimMessage(value);
+    setIsPending(false);
+		setIsError(false);
+  }
   
   
 	// Handles user deposit form submit
@@ -337,7 +388,12 @@ function App() {
 		e.preventDefault();
 		poolValueChange(e.target.poolwithdraw.value);
 		withdraw();
-	};
+  };
+  
+  const handleWithdrawAllSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    withdrawAll();
+  }
   
   // Handles user buyCoverage form submit
 	const handleBuyCoverageSubmit = (e: React.FormEvent) => {
@@ -346,6 +402,12 @@ function App() {
     buyPeriodValueChange(e.target.poolbuycoverperiod.value);
 		buyCoverage();
   };
+
+  const handleOpenClaimSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    claimMessageValueChange(e.target.openclaim.value);
+    openClaim();
+  }
   
   // useEffect(() => {
   //   setWalAddress(walAddress);
@@ -357,7 +419,7 @@ function App() {
 
 		<ErrorAlert />
 		<PendingAlert />
-
+    {/* <ToastMessage message={"Welcome to my dapp"} icon={"Mood"} my={3} /> */}
 		<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Ethereum-icon-purple.svg/512px-Ethereum-icon-purple.svg.png" className="App-logo" alt="Ethereum logo" />
 
 		<h1>
@@ -377,7 +439,7 @@ function App() {
 
 
 
-    <Card bg={"black"} width={"auto"} maxWidth={"420px"} mx={"auto"} px={[3,3,4]}>
+    <Card bg={"black"} width={1000} maxWidth={"420px"} mx={"auto"} px={[3,3,4]}>
     <Text fontWeight={4} alignItems={"center"} >Connected Wallet</Text>
     <EthAddress address={walAddress} />
 		{/* // <p>
@@ -387,12 +449,13 @@ function App() {
 		// </p> */}
     </Card>
 
-    <Card bg={"black"} width={"auto"} maxWidth={"420px"} mx={"auto"} px={[3,3,4]}>
-    <Text fontWeight={4} alignItems={"center"} >Become a Coverage Provider and earn rewards!</Text>
-    <p>
+    <Card bg={"black"} width={1000} maxWidth={"420px"} mx={"auto"} px={[3,3,4]}>
+    <Text fontWeight={'bold'} fontSize={36} alignItems={"center"} >Provide Liquidity</Text>
+    <Text fontWeight={1} fontSize={28} alignItems={"left"} >ETH deposited: {ethBalance}<br />QSR reward: {quasarBalance}</Text>
+    {/* <p>
       ETH deposited: {ethBalance} <br />
       QSR reward: {quasarBalance}
-    </p>
+    </p> */}
     <form onSubmit={handleDepositSubmit}>
     <Field label="Deposit ETH">
     <input type="number" step="1" min="0" id="pooldeposit" 
@@ -421,6 +484,12 @@ function App() {
 		<Button type="submit" >Withdraw</Button>
     </Field>
 		</form>
+
+    <form onSubmit={handleWithdrawAllSubmit}>
+    {/* <Field label="Withdraw all ETH"> */}
+    <Button type="submit" >Withdraw All</Button>
+    {/* </Field> */}
+    </form>
     </Card>
 
 		{/* <form onSubmit={handleWithdrawSubmit}>
@@ -433,13 +502,17 @@ function App() {
 		</p>
 		</form> */}
 
-    <Card bg={"black"} width={"auto"} maxWidth={"420px"} mx={"auto"} px={[3,3,4]}>
-    <Text fontWeight={4} alignItems={"center"} >Buy Coverage</Text>
+    <Card bg={"black"} width={1000} maxWidth={"420px"} mx={"auto"} px={[1,1,1]} position={'left'}>
+    <Text fontWeight={'bold'} fontSize={36} alignItems={"center"}  >Buy Coverage</Text>
+    <Field label="Choose platform">
+    <form><select>
+      <option value="1">Maker</option>
+      <option value="2">Aave</option>
+      <option value="3">Compound</option>
+    </select></form>
+    </Field>
     <form onSubmit={handleBuyCoverageSubmit}>
     <Field label="Coverage amount (ETH)">
-
-		{/* <p>
-		<label htmlFor="poolbuycover">Buy coverage:</label> */}
 		<input type="number" step="1" min="0" id="poolbuycoveramount" 
 		name="poolbuycoveramount" onChange={e => buyAmountValueChange(e.target.value)} required 
 		style={{margin:'12px'}}/>
@@ -449,12 +522,21 @@ function App() {
 		name="poolbuycoverperiod" onChange={e => buyPeriodValueChange(e.target.value)} required 
 		style={{margin:'12px'}}/>
     </Field>
-
 		<Button type="submit" >Buy</Button>
-		{/* </p> */}
 		</form>
     </Card>
 
+    <Card bg={"black"} width={1000} maxWidth={"420px"} mx={"auto"} px={[1,1,1]} position={'left'}>
+    <Text fontWeight={'bold'} fontSize={36} alignItems={"center"}  >Open Claim</Text>  
+    <form onSubmit={handleOpenClaimSubmit}>
+    <Field label="Please tell us what happened">
+		<input type="string" step="1" min="0" id="openclaim" 
+		name="openclaim" onChange={e => claimMessageValueChange(e.target.value)} required 
+		style={{margin:'12px'}}/>
+    </Field>
+		<Button type="submit" >Submit</Button>
+		</form>
+    </Card>
 
 		<a  title="GitR0n1n / CC BY-SA (https://creativecommons.org/licenses/by-sa/4.0)" href="https://commons.wikimedia.org/wiki/File:Ethereum-icon-purple.svg">
 		<span style={{fontSize:'12px',color:'grey'}}>
