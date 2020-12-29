@@ -1,4 +1,4 @@
-import logo from './logo.svg';
+import logo from './quasar.png';
 import "./App.css";
 // import React, { Component } from 'react';
 import React, { useState, useEffect } from 'react';
@@ -420,8 +420,8 @@ function App() {
 		<ErrorAlert />
 		<PendingAlert />
     {/* <ToastMessage message={"Welcome to my dapp"} icon={"Mood"} my={3} /> */}
-		<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Ethereum-icon-purple.svg/512px-Ethereum-icon-purple.svg.png" className="App-logo" alt="Ethereum logo" />
-
+		{/* <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Ethereum-icon-purple.svg/512px-Ethereum-icon-purple.svg.png" className="App-logo" alt="Ethereum logo" /> */}
+    <img src={logo}/>
 		<h1>
       QUASAR PROTOCOL<br/>
       Total Value Locked: {tvl} ETH
