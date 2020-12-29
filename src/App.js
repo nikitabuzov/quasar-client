@@ -20,8 +20,8 @@ import BigNumber from 'bignumber.js';
 import Pool from './contracts/Pool.json';
 import QuasarToken from './contracts/QuasarToken.json';
 
-const poolAddress = '0x8D0Ac6970A7eFD53Ce6aE26e9abEeD0B7dA8d0eC';
-const quasarAddress = '0x506c7ba8f919A544bb0aEa2EaEb86ee0b1EC92bF';
+const poolAddress = '0x2A0E9B0F0F23eC7E49f82Fe83486a905A8312787';
+const quasarAddress = '0x0e046Bf1f9Fc77ABC6d801434Ff2429c46265998';
 
 let provider;
 let signer;
